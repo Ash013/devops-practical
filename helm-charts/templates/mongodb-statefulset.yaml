@@ -1,0 +1,88 @@
+{{- if .Values.mongodb.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "swimlane-app.mongodb.fullname" . }}
+  labels:
+    {{- include "swimlane-app.mongodb.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "swimlane-app.mongodb.fullname" . }}
+  replicas: {{ .Values.mongodb.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "swimlane-app.mongodb.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.mongodb.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "swimlane-app.mongodb.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.mongodb.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "swimlane-app.mongodb.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.mongodb.podSecurityContext | nindent 8 }}
+      containers:
+        - name: mongodb
+          securityContext:
+            {{- toYaml .Values.mongodb.securityContext | nindent 12 }}
+          image: "{{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.mongodb.image.pullPolicy }}
+          ports:
+            - name: mongodb
+              containerPort: {{ .Values.mongodb.service.port }}
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.mongodb.service.port }}
+            initialDelaySeconds: {{ .Values.mongodb.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.mongodb.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.mongodb.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.mongodb.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.mongodb.livenessProbe.failureThreshold }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.mongodb.service.port }}
+            initialDelaySeconds: {{ .Values.mongodb.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.mongodb.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.mongodb.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.mongodb.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.mongodb.readinessProbe.failureThreshold }}
+          resources:
+            {{- toYaml .Values.mongodb.resources | nindent 12 }}
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+      {{- with .Values.mongodb.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mongodb.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.mongodb.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    {{- if .Values.mongodb.persistence.enabled }}
+    - metadata:
+        name: mongo-data
+      spec:
+        accessModes:
+          - {{ .Values.mongodb.persistence.accessMode }}
+        {{- if .Values.mongodb.persistence.storageClass }}
+        storageClassName: {{ .Values.mongodb.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.mongodb.persistence.size }}
+    {{- end }}
+{{- end }}
+
