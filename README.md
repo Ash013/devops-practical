@@ -16,3 +16,5 @@ npm start
 ```
 
 Then visit [http://localhost:3000/](http://localhost:3000/)
+
+<img width="834" height="471" alt="image" src="https://github.com/user-attachments/assets/19685335-57c1-44a4-824f-bba8f85b90b5" />
